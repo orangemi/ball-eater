@@ -1,0 +1,7 @@
+{
+	"name" : "ball-eater",
+	"dependecy" : {
+		"mime" : "*",
+		"websocket" : "*"
+	}
+}
