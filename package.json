@@ -1,6 +1,11 @@
 {
 	"name" : "ball-eater",
-	"dependecy" : {
+	"description" ; "big ball merge small ball",
+	"repository": {
+		"url": "https://github.com/orangemi/ball-eater",
+		"type": "git"
+	},
+	"dependencies" : {
 		"mime" : "*",
 		"websocket" : "*"
 	}
