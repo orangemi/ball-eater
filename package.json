@@ -1,6 +1,6 @@
 {
 	"name" : "ball-eater",
-	"description" ; "big ball merge small ball",
+	"description" : "big ball merge small ball",
 	"repository": {
 		"url": "https://github.com/orangemi/ball-eater",
 		"type": "git"
