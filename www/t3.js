@@ -1,23 +1,19 @@
 (function() {
 
 var canvas = document.getElementById('main_canvas');
-if (canvas == null) return false;
+if (!canvas) return false;
+
+canvas.width = document.body.clientWidth - 50;
+canvas.height = document.body.clientHeight - 50;
+// console.log(canvas);
+
 var context = canvas.getContext("2d");
 
-var Viewport = {
-	x : 0,
-	y : 0,
-	width : canvas.width,
-	height : canvas.height,
-	timer : null,
-};
-
 var Map = {
-	width : 500,
-	height : 500,
+	width : 1000,
+	height : 1000,
 	minRadius : 5,
 	circles : {},
-	// players : {},
 };
 
 var Viewport = {
@@ -25,20 +21,32 @@ var Viewport = {
 	y : Map.height / 2,
 	width : canvas.width,
 	height : canvas.height,
+	scale : 1,
 };
 
 var isMouseDown = false;
 
 var getRandowmColor = function() {
-	return "rgb(0,0,0)";
+	var c = [0,1,2,3,4,5,6,7,8,9,'a','b','c','d','e','f'];
+	var color = '#';
+	for (var i = 0; i < 6; i++) {
+		var index = Math.floor(Math.random() * c.length);
+		color += c[index];
+	}
+	return color;
 };
+
 
 var Circle = function(options) {
 	options = options || {};
 	this.init(options);
 };
 
+Circle.index = 0;
+
 Circle.prototype.init = function(options) {
+	this.id = Circle.index++;
+	this.name = options.name;
 	this.x = options.x || Map.width / 2;
 	this.y = options.y || Map.height / 2;
 	this.speedx = options.speedx || 0;
@@ -47,15 +55,12 @@ Circle.prototype.init = function(options) {
 	this.isFollow = options.isFollow || false;
 	this.color = options.color || getRandowmColor();
 	this.updatetime = Date.now();
+	this.maxspeed = options.maxspeed || 50;
 };
 
 Circle.prototype.destroy = function() {
 	return;
-	var self = this;
-	// Map.circles.forEach(function(circle, i) {
-		// if (circle != self) return;
-		// Map.circles.splice(i, 1);
-	// })
+
 };
 
 Circle.prototype.update = function() {
@@ -71,69 +76,114 @@ Circle.prototype.update = function() {
 	if (this.isFollow) {
 		Viewport.x = this.x;
 		Viewport.y = this.y;
+		Viewport.scale = Math.min(Viewport.height, Viewport.width) / 10 / this.r;
+		// console.log(Viewport.scale);
 	}
-
-
-	// //collide test
-	// var self = this;
-	// for (var key in Map.circles) {//.forEach(function(circle) {
-	// 	var circle = Map.circles[key];
-	// 	if (self == circle) return;
-	// 	var length = Math.sqrt((circle.x - self.x) * (circle.x - self.x) + (circle.y - self.y) * (circle.y - self.y));
-	// 	var maxR = Math.max(circle.r, self.r);
-	// 	var minR = Math.min(circle.r, self.r);
-	// 	var winner = null;
-	// 	var loser = null;
-	// 	if (circle.r < self.r) {
-	// 		winner = self;
-	// 		loser = circle;
-	// 	} else if (circle.r > self.r) {
-	// 		winner = circle;
-	// 		loser = self;
-	// 	}
-	// 	if (maxR - minR > length && winner) {
-	// 		winner.r += loser.r;
-	// 		loser.destroy();
-	// 	}
-	// }
-	// console.log(past, this.x, this.y, this.speedx, this.speedy);
 };
 
 Circle.prototype.draw = function() {
 	context.beginPath();
 	context.arc(
-		this.x - (Viewport.x - Viewport.width / 2),
-		this.y - (Viewport.y - Viewport.height / 2),
-		this.r,
+		(this.x - Viewport.x) * Viewport.scale + Viewport.width / 2,
+		(this.y - Viewport.y) * Viewport.scale + Viewport.height / 2,
+		this.r * Viewport.scale,
 		0,
-		Math.PI * 2, true);
+		Math.PI * 2, true
+	);
+
+	// if (player == this) console.log((this.x - (Viewport.x - Viewport.width / 2 )) * 1, (this.y - (Viewport.y - Viewport.height / 2 )) * 1);
+
 	context.closePath();
 	context.fillStyle = this.color;
 	context.fill();
+
+	context.fillStyle = '#fff';
+	context.font = (this.r) + "px Arial";
+	context.textBaseline = 'middle';
+ 	context.textAlign = 'center';
+	context.fillText(
+		this.name,
+		(this.x - Viewport.x) * Viewport.scale + Viewport.width / 2,
+		(this.y - Viewport.y) * Viewport.scale + Viewport.height / 2
+	);
 };
+
+function drawGrid(color, stepx, stepy) {
+   context.save();
+   context.strokeStyle = color;
+   context.fillStyle = '#ffffff';
+   context.lineWidth = 0.5;
+   context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+   for (var i = stepx + 0.5; i < context.canvas.width; i += stepx) {
+     context.beginPath();
+     context.moveTo(i, 0);
+     context.lineTo(i, context.canvas.height);
+     context.stroke();
+   }
+   for (var i = stepy + 0.5; i < context.canvas.height; i += stepy) {
+     context.beginPath();
+     context.moveTo(0, i);
+     context.lineTo(context.canvas.width, i);
+     context.stroke();
+   }
+   context.restore();
+}
+
+function updateScore() {
+	var scores = [];
+
+	for (var key in Map.circles) {
+		var circle = Map.circles[key];
+		var find = false;
+		if (!circle.name) continue;
+		for (var i = 0; i < scores.length; i++) {
+			if (circle.r > scores[i].r) {
+				scores.splice(i, 0, circle);
+				find = true;
+				break;
+			}
+		}
+		if (!find) scores.push(circle);
+	}
+
+	var $leaderboard = document.getElementById('leaderboard');
+	var html = '';
+	for (var key in scores) {
+		var circle = scores[key];
+		var name = circle.name;
+		var score = circle.r;
+		html += ['<li>', name , ': ' , score, '</li>'].join('');
+	}
+	$leaderboard.innerHTML = html;
+}
 
 //----------------------------------------------
 // Main Loop
 //----------------------------------------------
 setInterval(function() {
 	context.clearRect(0, 0, Viewport.width, Viewport.height);
+
+	// drawGrid();
+
 	var key, circle;
 	for (key in Map.circles) {
 		circle = Map.circles[key];
-		//.forEach(function(circle) {
 		circle.update();
-		// circle.draw();
 	}
 	
-	if (player) console.log(player.x, player.y);
+	// if (player) console.log(player.x, player.y);
 
 	// Map.draw();
-//	Map.circles.forEach(function(circle) {
 	for (key in Map.circles) {
 		circle = Map.circles[key];
 		circle.draw();
 	}
+
 }, 1000 / 30);
+
+setInterval(function() {
+	updateScore();
+}, 1000);
 
 //----------------------------------------------
 // Player Character
@@ -149,15 +199,7 @@ var onMouseMove = function(evt) {
 	if (isMouseDown) changeDirection(evt.clientX, evt.clientY);
 };
 
-// var player = new Circle({
-// 	r : 15,
-// 	isFollow : true,
-// });
-// Map.circles.push(player);
 
-// player.maxspeed = 100;
-// player.minspeed = 1;
-// var isMouseDown = false;
 var player = null;
 
 var changeDirection = function(posX, posY) {
@@ -174,9 +216,7 @@ var changeDirection = function(posX, posY) {
 		speedx = speedx / tmpspeed * player.maxspeed;
 		speedy = speedy / tmpspeed * player.maxspeed;
 	}
-	console.log(speedx, speedy);
-	// player.speedx = speedx;
-	// player.speedy = speedy;
+	// console.log(speedx, speedy);
 	// player.update();
 	send({
 		action: 'move',
@@ -206,10 +246,10 @@ ws.onmessage = function (message) {
 		json = JSON.parse(message.data);
 	} catch (e) { return; }
 	// handle incoming message
-	console.log(json);
+	// console.log(json);
 	var action = json && json.action ? json.action : '';
 	if (action == 'sync') {
-		console.log(json);
+		// console.log(json);
 		Map.height = json.info.height;
 		Map.width = json.info.width;
 		Map.circles = {};
@@ -238,7 +278,9 @@ ws.onmessage = function (message) {
 			r: json.info.r,
 			name: json.info.name,
 			color: json.info.color,
+			maxspeed: json.info.maxspeed,
 		});
+		console.log(json.info.maxspeed);
 	} else if (action == 'update') {
 		var circle = Map.circles[json.player];
 		circle.x = json.info.x;
@@ -246,12 +288,15 @@ ws.onmessage = function (message) {
 		circle.speedx = json.info.speedx;
 		circle.speedy = json.info.speedy;
 		circle.r = json.info.r;
+		circle.maxspeed = json.info.maxspeed;
+		console.log(json.info.maxspeed);
 	} else if (action == 'play') {
 		var circle = Map.circles[json.player];
 		circle.isFollow = true;
 		player = circle;
-		player.maxspeed = 100;
-		player.minspeed = 1;
+		console.log('max spd:', player.maxspeed);
+		// player.maxspeed = 100;
+		// player.minspeed = 1;
 	}
 };
 
@@ -264,9 +309,10 @@ var onLoginClick = function() {
 	send({
 		action: 'join',
 		name: name,
-		color: '#f00',
+		color: getRandowmColor(),
+		// color: '',
 	});
-}
+};
 
 var btn_login = document.getElementById('btn_login');
 btn_login.addEventListener('click', onLoginClick);
