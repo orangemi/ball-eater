@@ -4,7 +4,7 @@ var canvas = document.getElementById('main_canvas');
 if (!canvas) return false;
 
 canvas.width = document.body.clientWidth - 50;
-canvas.height = document.body.clientHeight - 50;
+canvas.height = document.body.clientHeight - 150;
 // console.log(canvas);
 
 var context = canvas.getContext("2d");
@@ -23,6 +23,8 @@ var Viewport = {
 	height : canvas.height,
 	scale : 1,
 };
+
+console.log(Viewport);
 
 var isMouseDown = false;
 
@@ -108,32 +110,37 @@ Circle.prototype.draw = function() {
 	);
 };
 
-function drawGrid(color, stepx, stepy) {
-   context.save();
-   context.strokeStyle = color;
-   context.fillStyle = '#ffffff';
-   context.lineWidth = 0.5;
-   context.fillRect(0, 0, context.canvas.width, context.canvas.height);
-   for (var i = stepx + 0.5; i < context.canvas.width; i += stepx) {
-     context.beginPath();
-     context.moveTo(i, 0);
-     context.lineTo(i, context.canvas.height);
-     context.stroke();
-   }
-   for (var i = stepy + 0.5; i < context.canvas.height; i += stepy) {
-     context.beginPath();
-     context.moveTo(0, i);
-     context.lineTo(context.canvas.width, i);
-     context.stroke();
-   }
-   context.restore();
+function drawGrid(width, step) {
+	context.save();
+	context.strokeStyle = '#cccccc';
+	context.fillStyle = '#ffffff';
+	context.lineWidth = width || 0.5;
+	context.fillRect(0, 0, Viewport.width, Viewport.height);
+	for (var x = 0; x <= Map.width; x += step) {
+		var px = (x - Viewport.x) * Viewport.scale + Viewport.width / 2;
+		context.beginPath();
+		context.moveTo(px, 0);
+		context.lineTo(px, Viewport.height);
+		context.stroke();
+	}
+
+	for (var y = 0; y <= Map.width; y += step) {
+		var py = (y - Viewport.y) * Viewport.scale + Viewport.height / 2;
+		context.beginPath();
+		context.moveTo(0, py);
+		context.lineTo(Viewport.width, py);
+		context.stroke();
+	}
+
+	context.restore();
 }
 
 function updateScore() {
+	var key, circle;
 	var scores = [];
 
-	for (var key in Map.circles) {
-		var circle = Map.circles[key];
+	for (key in Map.circles) {
+		circle = Map.circles[key];
 		var find = false;
 		if (!circle.name) continue;
 		for (var i = 0; i < scores.length; i++) {
@@ -148,8 +155,8 @@ function updateScore() {
 
 	var $leaderboard = document.getElementById('leaderboard');
 	var html = '';
-	for (var key in scores) {
-		var circle = scores[key];
+	for (key in scores) {
+		circle = scores[key];
 		var name = circle.name;
 		var score = circle.r;
 		html += ['<li>', name , ': ' , score, '</li>'].join('');
@@ -163,7 +170,7 @@ function updateScore() {
 setInterval(function() {
 	context.clearRect(0, 0, Viewport.width, Viewport.height);
 
-	// drawGrid();
+	drawGrid(1, 20);
 
 	var key, circle;
 	for (key in Map.circles) {
@@ -189,14 +196,36 @@ setInterval(function() {
 // Player Character
 //----------------------------------------------
 var onMouseDown = function(evt) {
-	changeDirection(evt.clientX, evt.clientY);
+	var x, y;
+	if (evt.pageX || evt.pageY) { 
+		x = evt.pageX;
+		y = evt.pageY;
+	} else { 
+		x = evt.clientX + document.body.scrollLeft + document.documentElement.scrollLeft; 
+		y = evt.clientY + document.body.scrollTop + document.documentElement.scrollTop; 
+	} 
+	x -= canvas.offsetLeft;
+	y -= canvas.offsetTop;
+
+	changeDirection(x, y);
 	isMouseDown = true;
 };
 var onMouseUp = function(evt) {
 	isMouseDown = false;
 };
 var onMouseMove = function(evt) {
-	if (isMouseDown) changeDirection(evt.clientX, evt.clientY);
+	var x, y;
+	if (evt.pageX || evt.pageY) { 
+		x = evt.pageX;
+		y = evt.pageY;
+	} else { 
+		x = evt.clientX + document.body.scrollLeft + document.documentElement.scrollLeft; 
+		y = evt.clientY + document.body.scrollTop + document.documentElement.scrollTop; 
+	} 
+	x -= canvas.offsetLeft;
+	y -= canvas.offsetTop;
+
+	if (isMouseDown) changeDirection(x, y);
 };
 
 
@@ -265,7 +294,7 @@ ws.onmessage = function (message) {
 				name: player2.name,
 				color: player2.color,
 			});
-		};
+		}
 	} else if (action == 'quit') {
 		delete Map.circles[json.player];//.splice(json.player, 1);
 	} else if (action == 'join') {
