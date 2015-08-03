@@ -99,15 +99,24 @@ Circle.prototype.draw = function() {
 	context.fillStyle = this.color;
 	context.fill();
 
-	context.fillStyle = '#fff';
-	context.font = (this.r) + "px Arial";
-	context.textBaseline = 'middle';
- 	context.textAlign = 'center';
-	context.fillText(
-		this.name,
-		(this.x - Viewport.x) * Viewport.scale + Viewport.width / 2,
-		(this.y - Viewport.y) * Viewport.scale + Viewport.height / 2
-	);
+	if (this.name) {
+		context.fillStyle = '#000';
+		context.font = (this.r * Viewport.scale) + "px Arial";
+		context.textBaseline = 'middle';
+	 	context.textAlign = 'center';
+		context.fillText(
+			this.name,
+			(this.x - Viewport.x) * Viewport.scale + Viewport.width / 2,
+			(this.y - Viewport.y) * Viewport.scale + Viewport.height / 2 + this.r * Viewport.scale
+		);		
+	}
+
+	if (this == player) {
+		if (player.item) {
+			document.getElementById('lbl_item').innerHTML = player.item;
+		}
+	}
+
 };
 
 function drawGrid(width, step) {
@@ -318,7 +327,11 @@ ws.onmessage = function (message) {
 		circle.speedy = json.info.speedy;
 		circle.r = json.info.r;
 		circle.maxspeed = json.info.maxspeed;
+		// circle.item =
 		console.log(json.info.maxspeed);
+	} else if (action == 'obtain') {
+		player.item = json.item;
+
 	} else if (action == 'play') {
 		var circle = Map.circles[json.player];
 		circle.isFollow = true;
@@ -343,10 +356,27 @@ var onLoginClick = function() {
 	});
 };
 
+var onKeyDown = function(evt) {
+	// console.log(evt.keyCode);
+	// debugger;
+};
+
+var onUseClick = function(evt) {
+	var item = player && player.item;
+	if (!item) return;
+	send({
+		action: 'use',
+		item: item,
+	});
+};
+
 var btn_login = document.getElementById('btn_login');
+var btn_use = document.getElementById('btn_use');
 btn_login.addEventListener('click', onLoginClick);
+btn_use.addEventListener('click', onUseClick);
 canvas.addEventListener("mousedown", onMouseDown, false);
 canvas.addEventListener("mousemove", onMouseMove, false);
 canvas.addEventListener("mouseup", onMouseUp, false);
+window.addEventListener("keydown", onKeyDown, false);
 
 })();

@@ -26,8 +26,8 @@ var http = Http.createServer(function(request, response) {
 	// response.end();
 });
 
-http.listen(80, function() {
-	console.log((new Date()) + ' Server is listening on port 80');
+http.listen(8080, function() {
+	console.log((new Date()) + ' Server is listening on port 8080');
 });
 
 //var clients = [];
